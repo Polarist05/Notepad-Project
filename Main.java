@@ -40,14 +40,14 @@ public class Main extends Application{
         fileMenu.getMenuItems()[FileMenu.Exit.ordinal()].setOnAction(this::onClickSave);
         
         
-        //BorderPain
+        //BorderPane
         BorderPane borderPane = new BorderPane();
         borderPane.setTop(menuBar);
-        borderPane.setCenter(new TextArea());
+        borderPane.setCenter(new TextPane());
         borderPane.setBottom(new Label("Read only"));
 
-        
-        stage.setScene(new Scene(borderPane));
+        stage.setTitle("Super Very NotePad :)");//getFileName
+        stage.setScene(new Scene(borderPane,500,500));
         stage.show();
     }
     
