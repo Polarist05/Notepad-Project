@@ -70,7 +70,6 @@ public class Main extends Application{
         stage.setTitle("*.txt");
         stage.setScene(new Scene(borderPane,500,500));
         stage.show();
-
     }
     
     //Event Action
@@ -108,8 +107,8 @@ public class Main extends Application{
                 textArea.appendText(line);
                 textArea.appendText("\n");
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
         //System.out.println(file);
 
@@ -137,6 +136,7 @@ public class Main extends Application{
 
         } catch (Exception ex) {
             //TODO: handle exception
+            ex.printStackTrace();
         }
         if(saveChange){
             stage.setTitle("*.txt");
@@ -165,6 +165,7 @@ public class Main extends Application{
 
         } catch (Exception ex) {
             //TODO: handle exception
+            ex.getStackTrace();
         }
     }
 
