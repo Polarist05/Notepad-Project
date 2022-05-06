@@ -103,6 +103,7 @@ public class Main extends Application{
                 //System.out.println(openFile);
                 if(openFile.length()==0){
                     onClickSaveAs(event);
+                    scStage.close();
                 }
                 else{
                     onClickSave(event);
@@ -211,7 +212,19 @@ public class Main extends Application{
         if(textArea.getText().hashCode()!=0&&!saveChange){
             SaveChangePane scPane = new SaveChangePane();
             Scene scScene = new Scene(scPane,300,60);
-            scPane.saveBtn.setOnAction((e) -> onClickSaveAs(event));
+            scPane.saveBtn.setOnAction((e) -> {
+                if(openFile.length()==0){
+                    onClickSaveAs(event);
+                    scStage.close();
+                    stage.close();
+                }
+                else{
+                    onClickSave(event);
+                    requestOpen=true;
+                    scStage.close();
+                    stage.close();
+                }
+            });
             scPane.dontSaveBtn.setOnAction((e) -> {
                 saveChange=false;
                 scStage.close();
