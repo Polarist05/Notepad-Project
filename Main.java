@@ -4,22 +4,17 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser.ExtensionFilter;
@@ -35,11 +30,14 @@ enum FileMenu{
 public class Main extends Application{
     private static Alert alert;
     static Stage stage;
-    Stage saveChangeStage = new Stage();
+    Stage scStage = new Stage();
     TextArea textArea = new TextArea();
     FileChooser fileChooser = new FileChooser();
     PrintStream printS;
     boolean saveChange=false;
+    boolean openEvent=false;
+    boolean requestOpen=false;
+    String openFile="";
 
     public static void main(String[] args) {
         launch();
@@ -74,51 +72,110 @@ public class Main extends Application{
     
     //Event Action
     public void onClickNew(ActionEvent event){
-        BorderPane saveChangePane = new BorderPane();
-        HBox btnBox = new HBox();
-        Scene saveChangeScene = new Scene(saveChangePane,300,60);
-        Button save = new Button("Save");
-        save.setOnAction((e) -> onClickSave(event));
-        Button dontSave = new Button("Don't Save");
-        dontSave.setOnAction((e) -> saveChangeStage.close());
-        btnBox.getChildren().addAll(save,dontSave);
-        btnBox.setAlignment(Pos.CENTER);
-        btnBox.setSpacing(5);
-        Text text = new Text("Do you want to save change?");
-        text.setFont(new Font(16));
-        saveChangePane.setPadding(new Insets(5));
-        saveChangePane.setTop(text);
-        saveChangePane.setBottom(btnBox);
-        saveChangeStage.setTitle("Save Change?");
-        saveChangeStage.setScene(saveChangeScene);
+        SaveChangePane scPane = new SaveChangePane();
+        Scene scScene = new Scene(scPane,300,60);
+        scPane.saveBtn.setOnAction((e) -> onClickSaveAs(event));
+        scPane.dontSaveBtn.setOnAction((e) -> {
+            stage.setTitle("*.txt");
+            textArea.setText("");
+            saveChange=false;
+            scStage.close();
+        });
+        scPane.cancelBtn.setOnAction((e) -> {
+            saveChange=false;
+            scStage.close();
+        });
+        scStage.setTitle("Save Change?");
+        scStage.setScene(scScene);
 
         if(textArea.getText().hashCode()!=0&&!saveChange){
-            saveChangeStage.show();
             saveChange=true;
+            scStage.show();
         }
     }
 
     public void onClickOpen(ActionEvent event){
-        fileChooser.getExtensionFilters().addAll(new ExtensionFilter("txt File",".txt"));
-        File file = fileChooser.showOpenDialog(stage);
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine()) != null){
-                textArea.appendText(line);
-                textArea.appendText("\n");
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        openEvent=true;
+        if(textArea.getText().hashCode()!=0&&!requestOpen){
+            SaveChangePane scPane = new SaveChangePane();
+            Scene scScene = new Scene(scPane,300,60);
+            scPane.saveBtn.setOnAction((e) ->{
+                //System.out.println(openFile);
+                if(openFile.length()==0){
+                    onClickSaveAs(event);
+                }
+                else{
+                    onClickSave(event);
+                    requestOpen=true;
+                    scStage.close();
+                    onClickOpen(event);
+                }
+            });
+            scPane.dontSaveBtn.setOnAction((e) -> {
+                requestOpen=true;
+                scStage.close();
+                onClickOpen(event);
+            });
+            scPane.cancelBtn.setOnAction((e) -> {
+                saveChange=true;
+                scStage.close();
+            });
+            scStage.setTitle("Save Change?");
+            scStage.setScene(scScene);
+            scStage.show();
         }
+        else{
+            saveChange=false;
+            fileChooser.setTitle("Open File");
+            fileChooser.getExtensionFilters().addAll(new ExtensionFilter("txt File",".txt"));
+            File file = fileChooser.showOpenDialog(stage);
+            openFile = file.toString();
+            //System.out.println(openFile);
+            stage.setTitle(file.getName());
+            textArea.clear();
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null){
+                    textArea.appendText(line);
+                    textArea.appendText("\n");
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         //System.out.println(file);
-
+        requestOpen=false;
+        }
     }
 
     public void onClickSave(ActionEvent event){
-        fileChooser.setTitle("Save File");
+        if(openEvent){
+            try {
+                File file = Path.of(openFile).toFile();
+                fileChooser.setInitialDirectory(file.getParentFile());
+                if(file != null){
+                    try{
+                        printS = new PrintStream(file);
+                        printS.print(textArea.getText());
+                        //printS.flush();
+                    }catch(FileNotFoundException e){
+                    System.out.println("File can't save");
+                }
+            }
+            }catch (Exception ex) {
+                //TODO: handle exception
+                ex.printStackTrace();
+            }
+        }
+        else{
+            onClickSaveAs(event);
+        }
+    }
+    
+    public void onClickSaveAs(ActionEvent event){
+        fileChooser.setTitle("Save As File");
         fileChooser.setInitialFileName("*.txt");
         fileChooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("text file", ".txt"));
-        saveChangeStage.close();
+        scStage.close();
         try {
             File file = fileChooser.showSaveDialog(stage);
             fileChooser.setInitialDirectory(file.getParentFile());
@@ -143,33 +200,33 @@ public class Main extends Application{
             textArea.setText("");
             saveChange=false;
         }
-    }
-    
-    public void onClickSaveAs(ActionEvent event){
-        fileChooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Add All", "*"));
-        fileChooser.setTitle("Save File");
-        try {
-            File file = fileChooser.showSaveDialog(stage);
-            fileChooser.setInitialDirectory(file.getParentFile());
-            if(file != null){
-                try{
-                    printS = new PrintStream(file);
-                    printS.print(textArea.getText());
-                    stage.setTitle(file.getName());
-                    //System.out.print(file.getName());
-                    printS.flush();
-                }catch(FileNotFoundException e){
-                System.out.println("File can't save");
-            }
+        if(openEvent){
+            requestOpen=true;
+            onClickOpen(event);
         }
-
-        } catch (Exception ex) {
-            //TODO: handle exception
-            ex.getStackTrace();
-        }
+        
     }
 
     public void onClickExit(ActionEvent event){
-        stage.close();
+        if(textArea.getText().hashCode()!=0&&!saveChange){
+            SaveChangePane scPane = new SaveChangePane();
+            Scene scScene = new Scene(scPane,300,60);
+            scPane.saveBtn.setOnAction((e) -> onClickSaveAs(event));
+            scPane.dontSaveBtn.setOnAction((e) -> {
+                saveChange=false;
+                scStage.close();
+                stage.close();
+            });
+            scPane.cancelBtn.setOnAction((e) -> {
+                saveChange=false;
+                scStage.close();
+            });
+            scStage.setTitle("Save Change?");
+            scStage.setScene(scScene);
+            scStage.show();
+        }
+        else{
+            stage.close();
+        }
     }
 }
